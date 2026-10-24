@@ -1,0 +1,7 @@
+sentence-transformers
+faiss-cpu
+groq
+streamlit
+pandas
+scikit-learn
+python-dotenv
