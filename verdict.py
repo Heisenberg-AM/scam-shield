@@ -48,6 +48,7 @@ def verdict_agent(message, linguistic_result, evidence):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         # If running without API key, use fallback silently (UI will show notice)
+        fallback_result["explanation"] = "Could not reach LLM. Based purely on rule-based keyword detection. (Reason: GROQ_API_KEY is not set or empty)"
         return fallback_result
 
     client = Groq(api_key=api_key)
@@ -98,6 +99,7 @@ Respond ONLY with JSON format:
 
     except Exception as e:
         print(f"LLM API Error: {e}")
+        fallback_result["explanation"] = f"Could not reach LLM. Based purely on rule-based keyword detection. (API Error: {str(e)})"
         return fallback_result
 
 
