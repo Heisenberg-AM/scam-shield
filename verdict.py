@@ -9,7 +9,7 @@ load_dotenv()
 # Constants
 LEVEL_LOW_MAX = 34
 LEVEL_MEDIUM_MAX = 64
-DEFAULT_MODEL = "llama-3.1-8b-instant"
+DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
 def get_level(score):
     """
