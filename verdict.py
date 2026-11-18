@@ -59,19 +59,52 @@ def verdict_agent(message, linguistic_result, evidence):
     for i, ev in enumerate(evidence):
         evidence_text += f"[{i+1}] Source: {ev['source_type']}\nText: {ev['text']}\n\n"
 
-    prompt = f"""You are a scam-detection analyst for Indian SMS/WhatsApp.
-Analyze this message: "{message}"
+    prompt = f"""You are a specialized cybersecurity and scam-detection analyst for Indian SMS and WhatsApp messages.
+Analyze the target message below by evaluating the rule-based linguistic findings alongside the retrieved threat intelligence.
 
-Linguistic findings: Risk score {linguistic_result['score']}/100.
-Flags: {json.dumps(linguistic_result['flags'])}
-Matched keywords: {json.dumps(linguistic_result['matched'])}
+Target Message:
+"{message}"
 
-Retrieved Evidence:
+Linguistic Engine Output:
+- Preliminary Score: {linguistic_result['score']}/100
+- Detected Threat Categories: {json.dumps(linguistic_result['flags'])}
+- Matched Keywords/Entities: {json.dumps(linguistic_result['matched'])}
+
+Retrieved Similar Threat Patterns (Vector DB):
 {evidence_text}
 
-Use ONLY the provided evidence and linguistic findings. If the evidence is weak or contradicts, say so. Legitimate messages exist, so do not label everything as a scam.
-Respond ONLY with JSON format:
-{{"risk_score": integer between 0-100, "explanation": "2-4 simple sentences", "reasons": ["short bullet 1", "short bullet 2"], "evidence_used": [numbers of the evidence items you relied on], "advice": "one short safety tip"}}
+---
+### Analysis Guidelines:
+1. **Linguistic & Structural Flag Verification**:
+   - Inspect the message for temporal urgency or threats (e.g., "within 12 hours", "tonight at 9:30 PM", "account blocked"). If present, treat it as high risk even if no immediate monetary fee is demanded.
+   - Inspect links and domains: Check if legitimate Indian entities (e.g., India Post, SBI, BESCOM/State Electricity, TRAI) are paired with non-official, third-party, or typo-squatted domains (e.g., `.top`, `-update.com`, link shorteners like `bit.ly`/`tinyurl`).
+   - Reverse-urgency / Call-to-action: Identify reverse-authorization traps where inaction defaults to a loss (e.g., "SMS BLOCK to number" or "auto-debit scheduled").
+   - Unrealistic work/reward claims (e.g., liking videos, part-time daily payouts via WhatsApp links).
+
+2. **Synthesis with Retrieved Evidence**:
+   - High similarity (≥ 0.60): Leverage pattern matches directly to confirm intent.
+   - Low similarity (< 0.50): If retrieved items are irrelevant or legitimate bank templates, **do not downgrade** an obviously malicious structure (fake domains, urgency, harvesting). Rely on the linguistic red flags and domain structure.
+
+3. **Risk Scoring Calibration**:
+   - 0-25: Clearly legitimate notifications, standard transactional updates (OTP, balance debit/credit from official shortcodes).
+   - 26-55: Ambiguous, promotional spam, or unverified claims without suspicious URLs or credential requests.
+   - 56-85: Obvious phishing, credential/KYC harvesting, fake disconnection threats, or lookalike tracking domains.
+   - 86-100: Critical active attacks (APK drops, digital arrest threats, direct financial extortion, SIM swap triggers).
+
+---
+Respond strictly in valid JSON format matching this schema:
+{{
+  "risk_score": <integer 0-100>,
+  "risk_level": "<LOW | MEDIUM | HIGH | CRITICAL>",
+  "detected_linguistic_flags": ["<flag 1>", "<flag 2>"],
+  "explanation": "<2-3 clear sentences highlighting the deceptive mechanism and why the linguistic flags matter>",
+  "reasons": [
+    "<short concrete point about impersonation/domain>",
+    "<short concrete point about urgency/coercion>"
+  ],
+  "evidence_used": [<list of integer IDs from retrieved items relied on, or empty list [] if judged purely on structural flags>],
+  "advice": "<single concise, actionable safety directive>"
+}}
 """
 
     try:
