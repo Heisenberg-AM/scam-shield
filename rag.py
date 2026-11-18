@@ -10,6 +10,9 @@ EMBEDDING_DIM = 384
 MIN_SIMILARITY = 0.25
 KB_SCAM_MESSAGES_PATH = "data/kb_scam_messages.csv"
 KB_TRUSTED_INFO_PATH = "data/kb_trusted_info.csv"
+HINGLISH_SCAM = "data/Hinglish_Scam.csv"
+INSTITUTIONAL_FACTS = "data/institutional_facts.csv"
+MODULE1_OUTPUT="data/module1_output.csv"
 
 def build_index():
     """
@@ -18,10 +21,30 @@ def build_index():
     """
     # Load knowledge base data
     df_scam = pd.read_csv(KB_SCAM_MESSAGES_PATH)
+    if "source_type" not in df_scam.columns:
+        df_scam["source_type"] = "scam_message"
+
     df_trusted = pd.read_csv(KB_TRUSTED_INFO_PATH)
+    if "source_type" not in df_trusted.columns:
+        df_trusted["source_type"] = "bank_upi_info"
+
+    df_hinglish_scam = pd.read_csv(HINGLISH_SCAM)
+    if "source_type" not in df_hinglish_scam.columns:
+        df_hinglish_scam["source_type"] = "hinglish_scam"
+
+    df_institutional_facts = pd.read_csv(INSTITUTIONAL_FACTS)
+    if "statement" in df_institutional_facts.columns and "text" not in df_institutional_facts.columns:
+        df_institutional_facts = df_institutional_facts.rename(columns={"statement": "text"})
+    if "source_type" not in df_institutional_facts.columns:
+        df_institutional_facts["source_type"] = "institutional_fact"
+
+    df_module1_output = pd.read_csv(MODULE1_OUTPUT)
+    if "source_type" not in df_module1_output.columns:
+        df_module1_output["source_type"] = df_module1_output["source"] if "source" in df_module1_output.columns else "module1_output"
 
     # Combine datasets
-    df_combined = pd.concat([df_scam, df_trusted], ignore_index=True)
+    df_combined = pd.concat([df_scam, df_trusted, df_hinglish_scam, df_institutional_facts, df_module1_output], ignore_index=True)
+    df_combined = df_combined.dropna(subset=['text'])
 
     # Load embedding model
     model = SentenceTransformer(EMBEDDING_MODEL)
@@ -65,7 +88,7 @@ def retrieve_evidence(message, top_k=5):
             row = df_combined.iloc[idx]
             evidence.append({
                 "text": row['text'],
-                "source_type": row['source_type'],
+                "source_type": str(row.get('source_type', 'knowledge_base')),
                 "similarity": float(sim)
             })
 
